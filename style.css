@@ -1,0 +1,572 @@
+/* ============================================================
+   ALUR · Kanban Board — style.css
+   ------------------------------------------------------------
+   Daftar isi:
+   01. Variabel warna (tema terang & gelap)
+   02. Reset & gaya dasar
+   03. Header (brand, pencarian, tombol tema & task baru)
+   04. Tombol (ikon, primer, ghost, danger)
+   05. Papan & kolom
+   06. Kartu task, handle drag, placeholder drop
+   07. Empty state
+   08. Modal buat/edit task
+   09. Toast notification
+   10. Detail kecil: mark pencarian, confetti, keyframes
+   11. Responsive
+============================================================ */
+
+/* ---------- 01. VARIABEL WARNA ---------- */
+:root {
+  --bg: #f1f4f9;            /* latar halaman: abu-abu sangat muda */
+  --surface: #ffffff;       /* permukaan kolom, header, modal */
+  --surface-2: #f4f6fa;     /* permukaan sekunder (hover) */
+  --border: #e3e8f1;
+  --border-strong: #ccd4e2;
+  --text: #1c2536;
+  --text-2: #5c6880;
+  --text-3: #97a1b6;
+
+  /* aksen biru lembut */
+  --accent: #3f68c9;
+  --accent-hover: #3557ab;
+  --accent-contrast: #ffffff;   /* warna teks di atas aksen */
+  --accent-soft: #e9eefa;       /* versi pucat untuk highlight/ring */
+
+  /* titik identitas tiap kolom */
+  --dot-backlog: #97a3b7;
+  --dot-todo: #e0a13e;
+  --dot-progress: #3f68c9;
+  --dot-done: #37a169;
+
+  /* badge prioritas (latar lembut + teks gelap) */
+  --low-bg: #e3f3e9;   --low-fg: #2b7a4b;
+  --med-bg: #fbf1dc;   --med-fg: #9a681d;
+  --high-bg: #fdeaec;  --high-fg: #bb4652;
+  --danger: #cc4657;
+
+  /* bayangan berlapis (kartu terasa "mengapung" tipis) */
+  --shadow-xs: 0 1px 2px rgba(28, 37, 54, .05);
+  --shadow-sm: 0 3px 10px rgba(28, 37, 54, .07);
+  --shadow-md: 0 10px 28px rgba(28, 37, 54, .12);
+  --shadow-lg: 0 24px 64px rgba(28, 37, 54, .22);
+  --shadow-drag: 0 18px 42px rgba(35, 55, 105, .28);
+
+  /* toast memakai warna kebalikan halaman agar menonjol */
+  --toast-bg: #232b3d;
+  --toast-text: #f1f4fb;
+  --toast-accent: #a9c2ff;
+
+  --r-lg: 16px;   /* radius kolom & modal */
+  --r-md: 12px;   /* radius kartu */
+  --r-sm: 9px;    /* radius tombol & input */
+}
+
+/* tema gelap: cukup menimpa variabel, komponen tidak perlu diubah */
+[data-theme="dark"] {
+  --bg: #15171d;
+  --surface: #1e212a;
+  --surface-2: #262a35;
+  --border: #2c3140;
+  --border-strong: #3b4152;
+  --text: #e7eaf1;
+  --text-2: #9fa8bc;
+  --text-3: #67718a;
+
+  --accent: #7d9bf0;
+  --accent-hover: #93adf4;
+  --accent-contrast: #111624;
+  --accent-soft: #232c47;
+
+  --dot-backlog: #6f7c94;
+  --dot-todo: #d9a04b;
+  --dot-progress: #7d9bf0;
+  --dot-done: #4bb684;
+
+  --low-bg: #173227;  --low-fg: #5ec08d;
+  --med-bg: #342910;  --med-fg: #d9a04b;
+  --high-bg: #362226; --high-fg: #e8848f;
+  --danger: #e2737f;
+
+  --shadow-xs: 0 1px 2px rgba(0, 0, 0, .28);
+  --shadow-sm: 0 3px 10px rgba(0, 0, 0, .32);
+  --shadow-md: 0 10px 28px rgba(0, 0, 0, .45);
+  --shadow-lg: 0 24px 64px rgba(0, 0, 0, .55);
+  --shadow-drag: 0 18px 42px rgba(0, 0, 0, .55);
+
+  --toast-bg: #eef1f7;
+  --toast-text: #222939;
+  --toast-accent: #3f68c9;
+}
+
+/* ---------- 02. RESET & DASAR ---------- */
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+[hidden] { display: none !important; }
+
+body {
+  font-family: 'Poppins', 'Segoe UI', Tahoma, sans-serif;
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--text);
+  background: var(--bg);
+  -webkit-font-smoothing: antialiased;
+  transition: background-color .25s ease, color .25s ease;
+}
+button { font-family: inherit; }
+
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+input:focus-visible, textarea:focus-visible { outline: none; }
+::selection { background: var(--accent-soft); }
+
+/* ukuran ikon SVG (disuntik oleh script.js lewat class) */
+svg.ic    { width: 17px; height: 17px; display: block; }
+svg.ic-sm { width: 14px; height: 14px; }
+svg.ic-xs { width: 11px; height: 11px; }
+
+body.no-scroll   { overflow: hidden; }              /* saat modal terbuka */
+body.is-dragging { cursor: grabbing; user-select: none; -webkit-user-select: none; }
+body.is-dragging * { cursor: grabbing !important; }
+
+/* ---------- 03. HEADER ---------- */
+.app-header {
+  position: sticky; top: 0; z-index: 60;
+  display: flex; align-items: center; gap: 14px;
+  height: 64px; padding: 0 22px;
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  transition: background-color .25s, border-color .25s;
+}
+.brand { display: flex; align-items: center; gap: 10px; flex-shrink: 0; }
+.brand-mark {
+  width: 34px; height: 34px; border-radius: 10px;
+  background: var(--accent); color: var(--accent-contrast);
+  display: grid; place-items: center;
+  box-shadow: 0 2px 6px rgba(63, 104, 201, .35);
+}
+.brand-mark svg { width: 19px; height: 19px; }
+.brand-name { font-size: 16.5px; font-weight: 600; letter-spacing: .01em; }
+.brand-sep  { width: 1px; height: 18px; background: var(--border); }
+.brand-tag  { font-size: 10.5px; font-weight: 500; letter-spacing: .14em; color: var(--text-3); }
+
+.search-box {
+  display: flex; align-items: center; gap: 8px;
+  margin-left: auto;
+  height: 38px; padding: 0 9px 0 12px;
+  flex: 0 1 290px; min-width: 140px;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: var(--r-sm);
+  transition: border-color .16s, box-shadow .16s, background-color .25s;
+}
+.search-box:focus-within {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-soft);
+  background: var(--surface);
+}
+.search-ic { color: var(--text-3); display: grid; place-items: center; }
+.search-ic svg { width: 15px; height: 15px; }
+.search-box input {
+  flex: 1; min-width: 0;
+  border: none; outline: none; background: transparent;
+  font-family: inherit; font-size: 13px; color: var(--text);
+}
+.search-box input::placeholder { color: var(--text-3); }
+.search-clear {
+  border: none; background: transparent; color: var(--text-3);
+  width: 24px; height: 24px; border-radius: 7px;
+  display: grid; place-items: center; cursor: pointer;
+}
+.search-clear svg { width: 13px; height: 13px; }
+.search-clear:hover { color: var(--text); background: var(--surface-2); }
+
+.header-actions { display: flex; align-items: center; gap: 10px; flex-shrink: 0; }
+
+/* ikon toggle tema: bulan saat terang, matahari saat gelap */
+#themeToggle .i-sun, #themeToggle .i-moon { display: grid; place-items: center; }
+#themeToggle .i-sun { display: none; }
+[data-theme="dark"] #themeToggle .i-sun  { display: grid; }
+[data-theme="dark"] #themeToggle .i-moon { display: none; }
+
+/* ---------- 04. TOMBOL ---------- */
+.icon-btn {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 38px; height: 38px;
+  border: 1px solid var(--border); border-radius: var(--r-sm);
+  background: var(--surface); color: var(--text-2);
+  cursor: pointer;
+  transition: background-color .16s, color .16s, border-color .16s, transform .1s;
+}
+.icon-btn:hover { background: var(--surface-2); color: var(--text); border-color: var(--border-strong); }
+.icon-btn:active { transform: scale(.94); }
+.icon-btn svg { width: 16px; height: 16px; }
+.icon-btn.icon-sm { width: 28px; height: 28px; border-radius: 8px; }
+.icon-btn.icon-sm svg { width: 14px; height: 14px; }
+
+.btn-primary {
+  display: inline-flex; align-items: center; gap: 7px;
+  height: 38px; padding: 0 16px;
+  border: none; border-radius: var(--r-sm);
+  background: var(--accent); color: var(--accent-contrast);
+  font-size: 13.5px; font-weight: 600; cursor: pointer;
+  box-shadow: 0 2px 8px rgba(63, 104, 201, .3);
+  transition: background-color .16s, box-shadow .16s, transform .1s;
+}
+.btn-primary:hover { background: var(--accent-hover); box-shadow: 0 4px 14px rgba(63, 104, 201, .38); }
+.btn-primary:active { transform: scale(.96); }
+.btn-primary svg { width: 15px; height: 15px; }
+
+.btn-ghost {
+  height: 38px; padding: 0 16px;
+  border: 1px solid var(--border); border-radius: var(--r-sm);
+  background: transparent; color: var(--text-2);
+  font-size: 13.5px; font-weight: 500; cursor: pointer;
+  transition: background-color .15s, color .15s, border-color .15s;
+}
+.btn-ghost:hover { background: var(--surface-2); color: var(--text); border-color: var(--border-strong); }
+
+.btn-danger-text {
+  border: none; background: transparent; color: var(--danger);
+  font-size: 13px; font-weight: 600;
+  padding: 9px 10px; border-radius: var(--r-sm); cursor: pointer;
+  transition: background-color .15s;
+}
+.btn-danger-text:hover { background: var(--high-bg); }
+
+/* ---------- 05. PAPAN & KOLOM ---------- */
+.board {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(230px, 1fr));
+  gap: 16px;
+  padding: 18px 20px 20px;
+  height: calc(100vh - 64px);
+  height: calc(100dvh - 64px);   /* dvh: lebih akurat di ponsel */
+  overflow-x: auto;
+  overflow-y: hidden;
+  scrollbar-width: thin;
+  scrollbar-color: var(--border-strong) transparent;
+}
+.board::-webkit-scrollbar { height: 8px; }
+.board::-webkit-scrollbar-thumb { background: var(--border-strong); border-radius: 99px; }
+
+/* animasi kolom masuk (sekali, saat halaman dibuka) */
+.board.intro .column { animation: colIn .5s cubic-bezier(.22, .9, .32, 1) backwards; }
+.board.intro .column:nth-child(2) { animation-delay: .07s; }
+.board.intro .column:nth-child(3) { animation-delay: .14s; }
+.board.intro .column:nth-child(4) { animation-delay: .21s; }
+
+.column {
+  display: flex; flex-direction: column;
+  min-width: 0; min-height: 0;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--r-lg);
+  box-shadow: var(--shadow-xs);
+  overflow: hidden;
+  transition: border-color .2s, box-shadow .2s, background-color .25s;
+}
+/* highlight kolom saat ada kartu diseret ke arahnya */
+.column.drag-over {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-soft), var(--shadow-sm);
+}
+
+.column-head {
+  display: flex; align-items: center; gap: 8px;
+  padding: 13px 10px 10px 15px;
+}
+.dot { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; }
+.dot-backlog  { background: var(--dot-backlog); }
+.dot-todo     { background: var(--dot-todo); }
+.dot-progress { background: var(--dot-progress); }
+.dot-done     { background: var(--dot-done); }
+.column-head h2 { font-size: 13.5px; font-weight: 600; flex: 1; min-width: 0; }
+
+/* counter jumlah task (muncul animasi "bump" saat berubah) */
+.count {
+  min-width: 26px; height: 20px; padding: 0 7px;
+  display: inline-flex; align-items: center; justify-content: center;
+  font-size: 11px; font-weight: 600; color: var(--text-2);
+  background: var(--surface-2); border: 1px solid var(--border);
+  border-radius: 999px;
+}
+.count.bump { animation: bump .35s ease; }
+
+/* daftar kartu: scroll internal di desktop agar terasa seperti aplikasi */
+.card-list {
+  flex: 1; min-height: 82px;
+  display: flex; flex-direction: column; gap: 10px;
+  padding: 2px 10px 4px;
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: var(--border-strong) transparent;
+}
+.card-list::-webkit-scrollbar { width: 6px; }
+.card-list::-webkit-scrollbar-thumb { background: var(--border-strong); border-radius: 99px; }
+.card-list::-webkit-scrollbar-track { background: transparent; }
+/* sembunyikan empty-state saat placeholder drag berada di kolom ini */
+.card-list.has-placeholder .empty-state { display: none; }
+
+/* tombol tambah task di bawah tiap kolom */
+.add-task-btn {
+  display: flex; align-items: center; justify-content: center; gap: 7px;
+  margin: 2px 10px 10px;
+  padding: 8px 10px;
+  border: none; background: transparent; border-radius: var(--r-sm);
+  color: var(--text-3); font-size: 12.5px; font-weight: 500; cursor: pointer;
+  transition: background-color .16s, color .16s;
+}
+.add-task-btn:hover { background: var(--accent-soft); color: var(--accent); }
+
+/* ---------- 06. KARTU TASK ---------- */
+.task-card {
+  position: relative;
+  display: flex; align-items: flex-start; gap: 8px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--r-md);
+  padding: 11px 12px;
+  box-shadow: var(--shadow-xs);
+  cursor: grab;
+  user-select: none; -webkit-user-select: none; -webkit-touch-callout: none;
+  transition: box-shadow .18s ease, transform .18s ease,
+              border-color .18s ease, background-color .25s ease;
+}
+.task-card:hover {
+  border-color: var(--border-strong);
+  box-shadow: var(--shadow-sm);
+  transform: translateY(-1px);
+}
+/* kartu yang sedang diseret: melayang, miring tipis, bayangan dalam.
+   Posisi left/top/width/transform di-set oleh JS. */
+.task-card.dragging {
+  position: fixed; z-index: 999;
+  pointer-events: none;               /* agar elementFromPoint melewatinya */
+  border-color: var(--accent);
+  box-shadow: var(--shadow-drag);
+  transform: rotate(2.5deg) scale(1.03);
+  transition: none;
+  cursor: grabbing;
+}
+
+/* grip untuk menyeret (di layar sentuh hanya lewat grip ini) */
+.card-handle {
+  flex: 0 0 auto;
+  display: flex; padding-top: 3px;
+  color: var(--text-3); opacity: 0;
+  cursor: grab;
+  touch-action: none;    /* penting: cegah scroll agar bisa diseret dengan jari */
+  border-radius: 4px;
+  transition: opacity .15s, color .15s;
+}
+.task-card:hover .card-handle { opacity: .55; }
+.card-handle:hover { opacity: 1; color: var(--text-2); }
+.card-handle svg { width: 13px; height: 13px; }
+/* di layar sentuh tidak ada hover — grip selalu terlihat */
+@media (hover: none) { .card-handle { opacity: .5; } }
+
+.card-body { flex: 1; min-width: 0; }
+.card-title { font-size: 13.5px; font-weight: 500; line-height: 1.45; overflow-wrap: anywhere; }
+.card-desc {
+  font-size: 12.5px; color: var(--text-2); line-height: 1.55;
+  margin: 3px 0 9px;
+  display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;
+  overflow: hidden; overflow-wrap: anywhere;
+}
+.card-meta { display: flex; align-items: center; gap: 10px; }
+.card-date {
+  margin-left: auto;
+  display: inline-flex; align-items: center; gap: 4px;
+  font-size: 11px; color: var(--text-3);
+}
+
+/* badge prioritas */
+.badge {
+  display: inline-flex; align-items: center; gap: 5px;
+  padding: 2px 8px; border-radius: 999px;
+  font-size: 10.5px; font-weight: 600; letter-spacing: .02em;
+}
+.badge .b-dot { width: 5px; height: 5px; border-radius: 50%; background: currentColor; }
+.badge-low    { background: var(--low-bg);  color: var(--low-fg); }
+.badge-medium { background: var(--med-bg);  color: var(--med-fg); }
+.badge-high   { background: var(--high-bg); color: var(--high-fg); }
+
+/* tombol edit/hapus: muncul di pojok kanan saat kartu di-hover/difokus */
+.card-actions {
+  position: absolute; top: 8px; right: 8px;
+  display: flex; gap: 4px;
+  opacity: 0; pointer-events: none; transform: translateY(-3px);
+  transition: opacity .15s, transform .15s;
+}
+.task-card:hover .card-actions,
+.task-card:focus-within .card-actions { opacity: 1; pointer-events: auto; transform: none; }
+
+/* penanda posisi saat drag & drop */
+.card-placeholder {
+  flex-shrink: 0;
+  border: 1.5px dashed var(--accent);
+  border-radius: var(--r-md);
+  background: var(--accent-soft);
+  animation: placeholderIn .18s ease;
+}
+
+/* ---------- 07. EMPTY STATE ---------- */
+.empty-state {
+  display: flex; flex-direction: column; align-items: center; text-align: center;
+  padding: 24px 12px;
+  border: 1.5px dashed var(--border-strong);
+  border-radius: var(--r-md);
+  color: var(--text-3);
+}
+.empty-state svg { width: 24px; height: 24px; opacity: .55; margin-bottom: 6px; }
+.empty-state .e-title { font-size: 12.5px; font-weight: 500; color: var(--text-2); }
+.empty-state .e-sub { font-size: 11.5px; }
+
+/* ---------- 08. MODAL ---------- */
+.modal-overlay {
+  position: fixed; inset: 0; z-index: 200;
+  display: flex; align-items: center; justify-content: center;
+  padding: 18px;
+  background: rgba(15, 23, 42, .45);
+  backdrop-filter: blur(3px);
+  opacity: 0; visibility: hidden; pointer-events: none;
+  transition: opacity .22s ease, visibility .22s;
+}
+[data-theme="dark"] .modal-overlay { background: rgba(0, 0, 0, .55); }
+.modal-overlay.open { opacity: 1; visibility: visible; pointer-events: auto; }
+
+.modal {
+  width: 100%; max-width: 480px;
+  max-height: calc(100vh - 36px);
+  max-height: calc(100dvh - 36px);
+  overflow-y: auto;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--r-lg);
+  box-shadow: var(--shadow-lg);
+  padding: 22px;
+  transform: translateY(14px) scale(.97);
+  transition: transform .3s cubic-bezier(.21, 1.02, .73, 1);
+}
+.modal-overlay.open .modal { transform: none; }
+
+.modal-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 18px; }
+.modal-head h2 { font-size: 17px; font-weight: 600; }
+
+.field { display: flex; flex-direction: column; gap: 7px; margin-bottom: 16px; }
+.field-label { font-size: 12px; font-weight: 600; color: var(--text-2); letter-spacing: .02em; }
+.req { color: var(--danger); }
+.opt { color: var(--text-3); font-weight: 400; }
+
+.field input, .field textarea {
+  font-family: inherit; font-size: 13.5px; color: var(--text);
+  background: var(--surface);
+  border: 1px solid var(--border); border-radius: var(--r-sm);
+  padding: 10px 12px;
+  transition: border-color .16s, box-shadow .16s;
+}
+.field textarea { resize: vertical; min-height: 82px; }
+.field input:focus, .field textarea:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-soft);
+}
+.field input::placeholder, .field textarea::placeholder { color: var(--text-3); }
+
+/* status error saat judul kosong */
+.field.error input { border-color: var(--danger); box-shadow: 0 0 0 3px var(--high-bg); animation: shake .3s ease; }
+.field-error { display: none; font-size: 11.5px; color: var(--danger); }
+.field.error .field-error { display: block; }
+
+/* kontrol segmen (prioritas & kolom) */
+.segmented {
+  display: flex; gap: 3px;
+  background: var(--bg);
+  border: 1px solid var(--border); border-radius: var(--r-sm);
+  padding: 3px;
+}
+.segmented.wrap { flex-wrap: wrap; }
+.segmented button {
+  flex: 1; min-width: 70px;
+  border: none; border-radius: 7px;
+  background: transparent; color: var(--text-2);
+  font-size: 12.5px; font-weight: 500;
+  padding: 7px 4px; cursor: pointer;
+  transition: background-color .15s, color .15s, box-shadow .15s;
+}
+.segmented button:hover { color: var(--text); }
+.segmented button.active { font-weight: 600; }
+#priorityGroup button.active[data-value="low"]    { background: var(--low-bg);  color: var(--low-fg); }
+#priorityGroup button.active[data-value="medium"] { background: var(--med-bg);  color: var(--med-fg); }
+#priorityGroup button.active[data-value="high"]   { background: var(--high-bg); color: var(--high-fg); }
+#columnGroup button.active { background: var(--surface); color: var(--accent); box-shadow: var(--shadow-xs); }
+
+.modal-actions {
+  display: flex; align-items: center; gap: 10px;
+  margin-top: 4px; padding-top: 16px;
+  border-top: 1px solid var(--border);
+}
+.flex-spacer { flex: 1; }
+
+/* ---------- 09. TOAST ---------- */
+.toast-wrap {
+  position: fixed; left: 0; right: 0; bottom: 20px; z-index: 300;
+  display: flex; flex-direction: column; align-items: center; gap: 8px;
+  padding: 0 16px; pointer-events: none;
+}
+.toast {
+  pointer-events: auto;
+  display: flex; align-items: center; gap: 10px;
+  max-width: 440px;
+  background: var(--toast-bg); color: var(--toast-text);
+  padding: 10px 14px; border-radius: var(--r-md);
+  box-shadow: var(--shadow-md);
+  font-size: 13px; font-weight: 500;
+  animation: toastIn .34s cubic-bezier(.21, 1.02, .73, 1);
+}
+.toast.hide { animation: toastOut .25s ease forwards; }
+.t-icon { flex-shrink: 0; width: 24px; height: 24px; border-radius: 8px; display: grid; place-items: center; }
+.toast.success .t-icon { color: #46c585; background: rgba(70, 197, 133, .16); }
+.toast.danger  .t-icon { color: #ef7482; background: rgba(239, 116, 130, .16); }
+.toast.info    .t-icon { color: #7fa0f5; background: rgba(127, 160, 245, .16); }
+.toast .t-msg { flex: 1; }
+.toast .t-action {
+  flex-shrink: 0;
+  border: none; background: transparent; color: var(--toast-accent);
+  font-family: inherit; font-size: 12.5px; font-weight: 600;
+  padding: 5px 8px; border-radius: 7px; cursor: pointer;
+}
+.toast .t-action:hover { background: rgba(128, 148, 190, .2); }
+
+/* ---------- 10. DETAIL KECIL ---------- */
+/* sorotan hasil pencarian pada judul/deskripsi kartu */
+mark {
+  background: var(--accent-soft);
+  color: inherit;
+  border-radius: 3px;
+  padding: 0 1px;
+  -webkit-box-decoration-break: clone;
+  box-decoration-break: clone;
+}
+
+/* partikel confetti saat task dijatuhkan di kolom Done */
+.confetti { position: fixed; z-index: 400; pointer-events: none; }
+
+@keyframes toastIn      { from { opacity: 0; transform: translateY(16px) scale(.94); } }
+@keyframes toastOut     { to   { opacity: 0; transform: translateY(10px) scale(.94); } }
+@keyframes bump         { 40%  { transform: scale(1.22); } }
+@keyframes placeholderIn{ from { opacity: 0; } }
+@keyframes shake        { 25%  { transform: translateX(-4px); } 75% { transform: translateX(4px); } }
+@keyframes colIn        { from { opacity: 0; transform: translateY(12px); } }
+
+/* ---------- 11. RESPONSIVE ---------- */
+/* layar sedang & kecil: kolom ditumpuk ke bawah, halaman digulir biasa */
+@media (max-width: 900px) {
+  .board { display: flex; flex-direction: column; height: auto; overflow: visible; padding: 16px; }
+  .card-list { overflow: visible; min-height: 0; }
+}
+/* ponsel: header membungkus, pencarian pindah ke baris sendiri */
+@media (max-width: 620px) {
+  .app-header { flex-wrap: wrap; height: auto; padding: 12px 16px; row-gap: 10px; }
+  .brand-sep, .brand-tag { display: none; }
+  .search-box { order: 10; flex: 1 1 100%; margin-left: 0; min-width: 0; }
+  .modal { padding: 18px; }
+}
