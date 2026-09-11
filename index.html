@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Alur · Kanban Board</title>
+  <meta name="description" content="Alur — papan Kanban sederhana untuk mengatur task. Dibuat dengan HTML, CSS, dan JavaScript murni." />
+
+  <!-- ikon tab browser (SVG inline, tanpa berkas tambahan) -->
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Crect width='24' height='24' rx='6' fill='%233f68c9'/%3E%3Cpath d='M7 6.5v11M12 6.5v7M17 6.5v14' fill='none' stroke='%23fff' stroke-width='2.4' stroke-linecap='round'/%3E%3C/svg%3E" />
+
+  <!-- font Poppins -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600&display=swap" rel="stylesheet" />
+
+  <link rel="stylesheet" href="style.css" />
+
+  <!-- cuplikan kecil (3 baris) agar tema tersimpan diterapkan SEBELUM halaman
+       dirender — mencegah kedipan warna saat pengguna memakai dark mode -->
+  <script>
+    try {
+      document.documentElement.dataset.theme =
+        localStorage.getItem('alur.theme') ||
+        (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+    } catch (e) { /* biarkan tema terang jika localStorage diblokir */ }
+  </script>
+</head>
+<body>
+
+  <!-- ================= HEADER APLIKASI ================= -->
+  <header class="app-header">
+    <div class="brand">
+      <span class="brand-mark" data-icon="kanban"></span>
+      <span class="brand-name">Alur</span>
+      <span class="brand-sep"></span>
+      <span class="brand-tag">KANBAN BOARD</span>
+    </div>
+
+    <!-- pencarian realtime (difilter di script.js) -->
+    <div class="search-box">
+      <span class="search-ic" data-icon="search"></span>
+      <input id="searchInput" type="text" placeholder="Cari task… (tekan /)" autocomplete="off" />
+      <button id="clearSearch" class="search-clear" data-icon="x" hidden
+              title="Bersihkan pencarian" aria-label="Bersihkan pencarian"></button>
+    </div>
+
+    <div class="header-actions">
+      <button id="themeToggle" class="icon-btn" title="Ganti tema terang/gelap" aria-label="Ganti tema">
+        <span class="i-moon" data-icon="moon"></span>
+        <span class="i-sun" data-icon="sun"></span>
+      </button>
+      <button id="newTaskBtn" class="btn-primary">
+        <span data-icon="plus"></span> Task Baru
+      </button>
+    </div>
+  </header>
+
+  <!-- ================= PAPAN KANBAN =================
+       4 kolom (Backlog / To Do / In Progress / Done) dirender oleh JS
+       dari konstanta COLUMNS di script.js -->
+  <main id="board" class="board" aria-label="Papan Kanban"></main>
+
+  <!-- ================= MODAL BUAT / EDIT TASK ================= -->
+  <div class="modal-overlay" id="modalOverlay">
+    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
+      <div class="modal-head">
+        <h2 id="modalTitle">Task Baru</h2>
+        <button class="icon-btn icon-sm" id="modalClose" data-icon="x" aria-label="Tutup"></button>
+      </div>
+
+      <form id="taskForm" novalidate>
+        <!-- judul: wajib diisi, divalidasi manual di JS -->
+        <label class="field">
+          <span class="field-label">Judul <span class="req">*</span></span>
+          <input id="taskTitle" type="text" maxlength="80"
+                 placeholder="cth: Desain halaman login" autocomplete="off" />
+          <span class="field-error" id="titleError">Judul task wajib diisi.</span>
+        </label>
+
+        <label class="field">
+          <span class="field-label">Deskripsi <span class="opt">(opsional)</span></span>
+          <textarea id="taskDesc" rows="3" maxlength="500"
+                    placeholder="Tambahkan detail, catatan, atau kriteria selesai…"></textarea>
+        </label>
+
+        <!-- prioritas: pill segmen, bukan dropdown biasa -->
+        <div class="field">
+          <span class="field-label">Prioritas</span>
+          <div class="segmented" id="priorityGroup">
+            <button type="button" data-value="low">Rendah</button>
+            <button type="button" data-value="medium">Sedang</button>
+            <button type="button" data-value="high">Tinggi</button>
+          </div>
+        </div>
+
+        <!-- kolom tujuan: task juga bisa dipindah lewat sini -->
+        <div class="field">
+          <span class="field-label">Kolom</span>
+          <div class="segmented wrap" id="columnGroup">
+            <button type="button" data-value="backlog">Backlog</button>
+            <button type="button" data-value="todo">To Do</button>
+            <button type="button" data-value="progress">In Progress</button>
+            <button type="button" data-value="done">Done</button>
+          </div>
+        </div>
+
+        <div class="modal-actions">
+          <button type="button" class="btn-danger-text" id="deleteInModal" hidden>Hapus Task</button>
+          <span class="flex-spacer"></span>
+          <button type="button" class="btn-ghost" id="cancelBtn">Batal</button>
+          <button type="submit" class="btn-primary" id="saveBtn">Simpan</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- wadah toast notification (diisi oleh JS) -->
+  <div class="toast-wrap" id="toastWrap" aria-live="polite"></div>
+
+  <script src="script.js"></script>
+</body>
+</html>
