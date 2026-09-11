@@ -4,118 +4,217 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Alur · Kanban Board</title>
-  <meta name="description" content="Alur — papan Kanban sederhana untuk mengatur task. Dibuat dengan HTML, CSS, dan JavaScript murni." />
-
-  <!-- ikon tab browser (SVG inline, tanpa berkas tambahan) -->
+  <meta name="description" content="Alur — Kanban board multi-board bergaya Trello & Notion. HTML, CSS, dan JavaScript murni." />
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Crect width='24' height='24' rx='6' fill='%233f68c9'/%3E%3Cpath d='M7 6.5v11M12 6.5v7M17 6.5v14' fill='none' stroke='%23fff' stroke-width='2.4' stroke-linecap='round'/%3E%3C/svg%3E" />
 
-  <!-- font Poppins -->
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600&display=swap" rel="stylesheet" />
 
   <link rel="stylesheet" href="style.css" />
 
-  <!-- cuplikan kecil (3 baris) agar tema tersimpan diterapkan SEBELUM halaman
-       dirender — mencegah kedipan warna saat pengguna memakai dark mode -->
+  <!-- terapkan tema tersimpan sebelum render agar dark mode tidak "kedip" -->
   <script>
     try {
       document.documentElement.dataset.theme =
         localStorage.getItem('alur.theme') ||
         (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
-    } catch (e) { /* biarkan tema terang jika localStorage diblokir */ }
+    } catch (e) {}
   </script>
 </head>
 <body>
 
-  <!-- ================= HEADER APLIKASI ================= -->
-  <header class="app-header">
-    <div class="brand">
-      <span class="brand-mark" data-icon="kanban"></span>
-      <span class="brand-name">Alur</span>
-      <span class="brand-sep"></span>
-      <span class="brand-tag">KANBAN BOARD</span>
-    </div>
-
-    <!-- pencarian realtime (difilter di script.js) -->
-    <div class="search-box">
-      <span class="search-ic" data-icon="search"></span>
-      <input id="searchInput" type="text" placeholder="Cari task… (tekan /)" autocomplete="off" />
-      <button id="clearSearch" class="search-clear" data-icon="x" hidden
-              title="Bersihkan pencarian" aria-label="Bersihkan pencarian"></button>
-    </div>
-
-    <div class="header-actions">
-      <button id="themeToggle" class="icon-btn" title="Ganti tema terang/gelap" aria-label="Ganti tema">
-        <span class="i-moon" data-icon="moon"></span>
-        <span class="i-sun" data-icon="sun"></span>
-      </button>
-      <button id="newTaskBtn" class="btn-primary">
-        <span data-icon="plus"></span> Task Baru
-      </button>
-    </div>
-  </header>
-
-  <!-- ================= PAPAN KANBAN =================
-       4 kolom (Backlog / To Do / In Progress / Done) dirender oleh JS
-       dari konstanta COLUMNS di script.js -->
-  <main id="board" class="board" aria-label="Papan Kanban"></main>
-
-  <!-- ================= MODAL BUAT / EDIT TASK ================= -->
-  <div class="modal-overlay" id="modalOverlay">
-    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
-      <div class="modal-head">
-        <h2 id="modalTitle">Task Baru</h2>
-        <button class="icon-btn icon-sm" id="modalClose" data-icon="x" aria-label="Tutup"></button>
+  <!-- ================= SIDEBAR: DAFTAR BOARD ================= -->
+  <aside class="app-sidebar" id="sidebar">
+    <div class="sidebar-head">
+      <div class="brand">
+        <span class="brand-mark" data-icon="kanban"></span>
+        <span class="brand-name">Alur</span>
       </div>
+      <button class="icon-btn icon-sm" id="sidebarClose" data-icon="x" aria-label="Tutup sidebar"></button>
+    </div>
 
+    <!-- daftar board dirender oleh JS -->
+    <nav class="board-list" id="boardList" aria-label="Daftar board"></nav>
+
+    <div class="sidebar-foot">
+      <div class="create-board-form" id="createBoardForm" hidden>
+        <input id="newBoardInput" type="text" maxlength="40" placeholder="Nama board baru…" autocomplete="off" />
+        <span class="cbf-hint">Enter untuk buat · Esc untuk batal</span>
+      </div>
+      <button class="create-board-btn" id="createBoardBtn"><span data-icon="plus"></span> Board Baru</button>
+      <div class="foot-row">
+        <button class="icon-btn" id="themeToggle" title="Ganti tema terang/gelap" aria-label="Ganti tema">
+          <span class="i-moon" data-icon="moon"></span>
+          <span class="i-sun" data-icon="sun"></span>
+        </button>
+        <span class="foot-hint">Tema</span>
+      </div>
+    </div>
+  </aside>
+  <div class="sidebar-backdrop" id="sidebarBackdrop"></div>
+
+  <!-- ================= AREA UTAMA ================= -->
+  <div class="app-main" id="appMain">
+    <header class="board-header">
+      <div class="bh-main">
+        <button class="icon-btn" id="sidebarToggle" data-icon="menu" aria-label="Buka daftar board"></button>
+
+        <!-- judul board: klik untuk ganti nama -->
+        <h1 class="board-title needs-board" id="boardTitle" title="Klik untuk ganti nama board">…</h1>
+        <button class="icon-btn needs-board" id="starBoard" data-icon="star" title="Tambahkan ke favorit" aria-label="Favoritkan board"></button>
+        <span class="bh-meta needs-board" id="boardMeta"></span>
+
+        <div class="bh-actions">
+          <div class="search-box needs-board">
+            <span class="search-ic" data-icon="search"></span>
+            <input id="searchInput" type="text" placeholder="Cari task… (tekan /)" autocomplete="off" />
+            <button id="clearSearch" class="search-clear" data-icon="x" hidden aria-label="Bersihkan pencarian"></button>
+          </div>
+
+          <!-- filter: prioritas, label, jatuh tempo -->
+          <div class="filter-wrap needs-board">
+            <button class="btn-soft" id="filterBtn">
+              <span data-icon="funnel"></span> Filter
+              <span class="f-badge" id="filterBadge" hidden></span>
+            </button>
+            <div class="filter-panel" id="filterPanel" hidden>
+              <div class="fp-section">
+                <span class="fp-label">Prioritas</span>
+                <div class="fp-chips">
+                  <button type="button" data-fp="priority" data-val="low">Rendah</button>
+                  <button type="button" data-fp="priority" data-val="medium">Sedang</button>
+                  <button type="button" data-fp="priority" data-val="high">Tinggi</button>
+                </div>
+              </div>
+              <div class="fp-section">
+                <span class="fp-label">Label</span>
+                <div class="fp-chips" id="fpLabels"></div>
+              </div>
+              <div class="fp-section">
+                <span class="fp-label">Jatuh tempo</span>
+                <div class="fp-chips">
+                  <button type="button" data-fp="due" data-val="late">Terlambat</button>
+                  <button type="button" data-fp="due" data-val="week">7 hari ke depan</button>
+                </div>
+              </div>
+              <div class="fp-foot">
+                <button type="button" class="fp-clear" id="clearFilters">Bersihkan filter</button>
+                <span id="filterResult"></span>
+              </div>
+            </div>
+          </div>
+
+          <button class="btn-soft needs-board" id="labelBtn"><span data-icon="tag"></span> Label</button>
+          <button class="btn-primary" id="newTaskBtn"><span data-icon="plus"></span> Task Baru</button>
+        </div>
+      </div>
+    </header>
+
+    <!-- papan: kolom + kartu dirender oleh JS -->
+    <main class="board" id="board" aria-label="Papan Kanban"></main>
+  </div>
+
+  <!-- ================= MODAL TASK (BUAT / EDIT) ================= -->
+  <div class="modal-overlay" id="taskModal">
+    <div class="modal modal-lg" role="dialog" aria-modal="true" aria-labelledby="taskModalTitle">
+      <div class="modal-head">
+        <h2 id="taskModalTitle">Task Baru</h2>
+        <button class="icon-btn icon-sm" id="taskModalClose" data-icon="x" aria-label="Tutup"></button>
+      </div>
       <form id="taskForm" novalidate>
-        <!-- judul: wajib diisi, divalidasi manual di JS -->
         <label class="field">
           <span class="field-label">Judul <span class="req">*</span></span>
-          <input id="taskTitle" type="text" maxlength="80"
-                 placeholder="cth: Desain halaman login" autocomplete="off" />
-          <span class="field-error" id="titleError">Judul task wajib diisi.</span>
+          <input id="taskTitle" type="text" maxlength="90" placeholder="cth: Desain halaman login" autocomplete="off" />
+          <span class="field-error">Judul task wajib diisi.</span>
         </label>
-
         <label class="field">
           <span class="field-label">Deskripsi <span class="opt">(opsional)</span></span>
-          <textarea id="taskDesc" rows="3" maxlength="500"
-                    placeholder="Tambahkan detail, catatan, atau kriteria selesai…"></textarea>
+          <textarea id="taskDesc" rows="3" maxlength="600" placeholder="Tambahkan detail, catatan, atau kriteria selesai…"></textarea>
         </label>
 
-        <!-- prioritas: pill segmen, bukan dropdown biasa -->
-        <div class="field">
-          <span class="field-label">Prioritas</span>
-          <div class="segmented" id="priorityGroup">
-            <button type="button" data-value="low">Rendah</button>
-            <button type="button" data-value="medium">Sedang</button>
-            <button type="button" data-value="high">Tinggi</button>
+        <div class="field-grid">
+          <div class="field">
+            <span class="field-label">Prioritas</span>
+            <div class="segmented" id="priorityGroup">
+              <button type="button" data-value="low">Rendah</button>
+              <button type="button" data-value="medium">Sedang</button>
+              <button type="button" data-value="high">Tinggi</button>
+            </div>
+          </div>
+          <div class="field">
+            <span class="field-label">Kolom</span>
+            <!-- tombol kolom dirender sesuai board aktif -->
+            <div class="segmented wrap" id="columnGroup"></div>
           </div>
         </div>
 
-        <!-- kolom tujuan: task juga bisa dipindah lewat sini -->
         <div class="field">
-          <span class="field-label">Kolom</span>
-          <div class="segmented wrap" id="columnGroup">
-            <button type="button" data-value="backlog">Backlog</button>
-            <button type="button" data-value="todo">To Do</button>
-            <button type="button" data-value="progress">In Progress</button>
-            <button type="button" data-value="done">Done</button>
+          <span class="field-label">Label</span>
+          <div class="label-picker" id="labelPicker"></div>
+        </div>
+
+        <div class="field">
+          <span class="field-label">Jatuh tempo</span>
+          <div class="due-row">
+            <input type="date" id="dueInput" />
+            <button type="button" class="btn-ghost btn-sm" id="dueClear">Hapus</button>
           </div>
+        </div>
+
+        <div class="field">
+          <span class="field-label">Checklist <span class="opt" id="checklistCount"></span></span>
+          <div class="progress" id="checklistProgress"><div id="checklistBar"></div></div>
+          <div class="check-list" id="checklistWrap"></div>
+          <input type="text" class="check-input" id="checklistInput" maxlength="120"
+                 placeholder="Tambah item checklist, tekan Enter…" autocomplete="off" />
         </div>
 
         <div class="modal-actions">
           <button type="button" class="btn-danger-text" id="deleteInModal" hidden>Hapus Task</button>
           <span class="flex-spacer"></span>
-          <button type="button" class="btn-ghost" id="cancelBtn">Batal</button>
-          <button type="submit" class="btn-primary" id="saveBtn">Simpan</button>
+          <button type="button" class="btn-ghost" id="taskCancel">Batal</button>
+          <button type="submit" class="btn-primary">Simpan</button>
         </div>
       </form>
     </div>
   </div>
 
-  <!-- wadah toast notification (diisi oleh JS) -->
+  <!-- ================= MODAL KONFIRMASI (HAPUS BOARD / KOLOM) ================= -->
+  <div class="modal-overlay" id="confirmModal">
+    <div class="modal modal-sm" role="alertdialog" aria-modal="true">
+      <div class="modal-head"><h2 id="confirmTitle">Hapus?</h2></div>
+      <p class="confirm-msg" id="confirmMsg"></p>
+      <div class="field" id="confirmInputWrap" hidden>
+        <span class="field-label">Ketik <b id="confirmNameRef"></b> untuk konfirmasi</span>
+        <input id="confirmInput" type="text" autocomplete="off" />
+      </div>
+      <div class="modal-actions">
+        <span class="flex-spacer"></span>
+        <button class="btn-ghost" id="confirmCancel">Batal</button>
+        <button class="btn-danger" id="confirmOk">Hapus</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ================= MODAL KELOLA LABEL ================= -->
+  <div class="modal-overlay" id="labelModal">
+    <div class="modal modal-sm" role="dialog" aria-modal="true">
+      <div class="modal-head">
+        <h2>Kelola Label</h2>
+        <button class="icon-btn icon-sm" id="labelModalClose" data-icon="x" aria-label="Tutup"></button>
+      </div>
+      <p class="modal-hint">Label milik board aktif. Klik bulatan warna untuk mengganti warna, klik nama untuk mengedit.</p>
+      <div class="label-list" id="labelList"></div>
+      <div class="modal-actions">
+        <button type="button" class="btn-ghost btn-sm" id="addLabelBtn"><span data-icon="plus"></span> Tambah Label</button>
+        <span class="flex-spacer"></span>
+        <button type="button" class="btn-primary" id="labelDone">Selesai</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- wadah toast notification -->
   <div class="toast-wrap" id="toastWrap" aria-live="polite"></div>
 
   <script src="script.js"></script>
